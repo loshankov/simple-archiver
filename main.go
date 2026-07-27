@@ -15,6 +15,13 @@ func NewArchiver(inputPath string) *SimpleArchiver {
 	}
 }
 
+func (sa *SimpleArchiver) compressEmpty(data []byte) []byte {
+	if len(data) == 0 {
+		return []byte{}
+	}
+	return data
+}
+
 func main() {
 	sa := NewArchiver("input.txt")
 	fmt.Printf("Архиватор создан, размер буфера: %d байт\nпуть к исходному файлу: %s", cap(sa.buffer), sa.inputPath)
