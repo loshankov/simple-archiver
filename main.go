@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type SimpleArchiver struct {
 	inputPath  string
@@ -22,7 +24,19 @@ func (sa *SimpleArchiver) compressEmpty(data []byte) []byte {
 	return data
 }
 
+func (sa *SimpleArchiver) countRepeating(data []byte) []byte {
+	data = sa.compressEmpty(data)
+
+	symbolsMap := make(map[string]int)
+	for _, symbol := range data {
+		symbolsMap[string(symbol)] += 1
+	}
+
+	return data
+}
+
 func main() {
 	sa := NewArchiver("input.txt")
 	fmt.Printf("Архиватор создан, размер буфера: %d байт\nпуть к исходному файлу: %s", cap(sa.buffer), sa.inputPath)
+	sa.countRepeating([]byte("AABBB"))
 }
