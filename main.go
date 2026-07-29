@@ -21,9 +21,8 @@ func (sa *SimpleArchiver) compressEmpty(data []byte) []byte {
 }
 
 func (sa *SimpleArchiver) countRepeating(data []byte) []byte {
-	data = sa.compressEmpty(data)
 	if len(data) == 0 {
-		return data
+		return []byte{}
 	}
 
 	currentChar := data[0]
@@ -44,6 +43,17 @@ func (sa *SimpleArchiver) countRepeating(data []byte) []byte {
 	result = append(result, byte(count), currentChar)
 
 	return result
+}
+
+func (sa *SimpleArchiver) createControlByte(count int, isCompressed bool) byte {
+	if count > 127 {
+		count = 127
+	}
+
+	if isCompressed {
+		return byte(128 + count)
+	}
+	return byte(count)
 }
 
 func main() {
