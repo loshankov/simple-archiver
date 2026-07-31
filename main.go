@@ -56,9 +56,49 @@ func (sa *SimpleArchiver) createControlByte(count int, isCompressed bool) byte {
 	return byte(count)
 }
 
+func (sa *SimpleArchiver) groupCompress(data []byte) []byte {
+	if len(data) == 0 {
+		return []byte{}
+	}
+
+	var result, hand []byte
+	countRepeat := 1
+	currentByte := data[0]
+
+	flushHand := func() {
+		if len(hand) != 0 {
+			result = append(result, sa.createControlByte(len(hand), false))
+			result = append(result, hand...)
+			hand = hand[:0]
+		}
+	}
+
+	closeRun := func(end int) {
+		if countRepeat >= 4 {
+			flushHand()
+			result = append(result, sa.createControlByte(countRepeat, true), currentByte)
+		} else {
+			hand = append(hand, data[end-countRepeat:end]...)
+		}
+	}
+
+	for i := 1; i < len(data); i++ {
+		if currentByte == data[i] {
+			countRepeat++
+		} else {
+			closeRun(i)
+			currentByte = data[i]
+			countRepeat = 1
+		}
+	}
+	closeRun(len(data))
+	flushHand()
+
+	return result
+}
+
 func main() {
 	sa := NewArchiver("input.txt")
-	//fmt.Printf("Архиватор создан, размер буфера: %d байт\nпуть к исходному файлу: %s", cap(sa.buffer), sa.inputPath)
-	sa.countRepeating([]byte("AABBB"))
-	sa.countRepeating([]byte("AABAB"))
+	sa.groupCompress([]byte("AAAABCD"))
+	sa.groupCompress([]byte("ABCCDE"))
 }
