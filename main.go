@@ -56,44 +56,63 @@ func (sa *SimpleArchiver) createControlByte(count int, isCompressed bool) byte {
 	return byte(count)
 }
 
+const (
+	minRun  = 4
+	stopRun = 3
+	maxLen  = 127
+)
+
 func (sa *SimpleArchiver) groupCompress(data []byte) []byte {
 	if len(data) == 0 {
 		return []byte{}
 	}
 
 	var result, hand []byte
-	countRepeat := 1
-	currentByte := data[0]
+
+	runLength := func(i int) int {
+		n := 1
+		for i+n < len(data) && data[i+n] == data[i] {
+			n++
+		}
+		return n
+	}
 
 	flushHand := func() {
-		if len(hand) != 0 {
-			result = append(result, sa.createControlByte(len(hand), false))
-			result = append(result, hand...)
-			hand = hand[:0]
+		for len(hand) > 0 {
+			n := min(len(hand), maxLen)
+			result = append(result, sa.createControlByte(n, false))
+			result = append(result, hand[:n]...)
+			hand = hand[n:]
 		}
 	}
 
-	closeRun := func(end int) {
-		if countRepeat >= 4 {
+	for i := 0; i < len(data); {
+		run := runLength(i)
+
+		if run >= minRun {
 			flushHand()
-			result = append(result, sa.createControlByte(countRepeat, true), currentByte)
-		} else {
-			hand = append(hand, data[end-countRepeat:end]...)
+			for r := run; r > 0; {
+				n := min(r, maxLen)
+				result = append(result, sa.createControlByte(n, true), data[i])
+				r -= n
+			}
+			i += run
+			continue
+		}
+
+		hand = append(hand, data[i])
+		i++
+
+		if i < len(data) && runLength(i) >= stopRun {
+			flushHand()
+		}
+
+		if len(hand) >= maxLen {
+			flushHand()
 		}
 	}
 
-	for i := 1; i < len(data); i++ {
-		if currentByte == data[i] {
-			countRepeat++
-		} else {
-			closeRun(i)
-			currentByte = data[i]
-			countRepeat = 1
-		}
-	}
-	closeRun(len(data))
 	flushHand()
-
 	return result
 }
 
