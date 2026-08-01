@@ -119,51 +119,48 @@ func (sa *SimpleArchiver) groupCompress(data []byte) []byte {
 }
 
 func (sa *SimpleArchiver) compress(data []byte) []byte {
-	if len(data) == 0 {
+	if len(sa.compressEmpty(data)) == 0 {
 		return []byte{}
 	}
 
+	runs := sa.countRepeating(data)
 	var result []byte
-	i := 0
 
-	for i < len(data) {
-		count := runLength(data, i)
+	for i := 0; i < len(runs); {
+		count := int(runs[i])
+		symbol := runs[i+1]
 
-		// сжатый блок
-		if count >= 4 {
-			result = append(result, byte(0x80|count), data[i])
-			i += count
+		// сжатая последовательность
+		if count >= minRun {
+			result = append(result, sa.createControlByte(count, true), symbol)
+			i += 2
 			continue
 		}
 
-		start := i
-		i += count
+		// несжимаемая группа: первую серию берём целиком
+		var hand []byte
+		for j := 0; j < count; j++ {
+			hand = append(hand, symbol)
+		}
+		i += 2
 
-		for i < len(data) {
-			next := runLength(data, i)
-			if next >= 3 {
-				break // впереди серия — она уйдёт в свой блок
+		// просмотр вперёд: добираем, пока впереди нет 3+ одинаковых
+		for i < len(runs) {
+			next := int(runs[i])
+			if next >= stopRun || len(hand)+next > maxLen {
+				break
 			}
-			if (i - start + next) > 127 {
-				break // лимит длины группы
+			for j := 0; j < next; j++ {
+				hand = append(hand, runs[i+1])
 			}
-			i += next
+			i += 2
 		}
 
-		result = append(result, byte(i-start))
-		result = append(result, data[start:i]...)
+		result = append(result, sa.createControlByte(len(hand), false))
+		result = append(result, hand...)
 	}
 
 	return result
-}
-
-// runLength — длина серии одинаковых байт начиная с i, максимум 127
-func runLength(data []byte, i int) int {
-	c := 1
-	for i+c < len(data) && data[i+c] == data[i] && c < 127 {
-		c++
-	}
-	return c
 }
 
 func main() {
