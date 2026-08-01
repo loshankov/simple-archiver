@@ -1,5 +1,13 @@
 package main
 
+import "fmt"
+
+const (
+	minRun  = 4
+	stopRun = 3
+	maxLen  = 127
+)
+
 type SimpleArchiver struct {
 	inputPath  string
 	outputPath string
@@ -56,12 +64,6 @@ func (sa *SimpleArchiver) createControlByte(count int, isCompressed bool) byte {
 	return byte(count)
 }
 
-const (
-	minRun  = 4
-	stopRun = 3
-	maxLen  = 127
-)
-
 func (sa *SimpleArchiver) groupCompress(data []byte) []byte {
 	if len(data) == 0 {
 		return []byte{}
@@ -116,8 +118,56 @@ func (sa *SimpleArchiver) groupCompress(data []byte) []byte {
 	return result
 }
 
+func (sa *SimpleArchiver) compress(data []byte) []byte {
+	if len(data) == 0 {
+		return []byte{}
+	}
+
+	var result []byte
+	i := 0
+
+	for i < len(data) {
+		count := runLength(data, i)
+
+		// сжатый блок
+		if count >= 4 {
+			result = append(result, byte(0x80|count), data[i])
+			i += count
+			continue
+		}
+
+		start := i
+		i += count
+
+		for i < len(data) {
+			next := runLength(data, i)
+			if next >= 3 {
+				break // впереди серия — она уйдёт в свой блок
+			}
+			if (i - start + next) > 127 {
+				break // лимит длины группы
+			}
+			i += next
+		}
+
+		result = append(result, byte(i-start))
+		result = append(result, data[start:i]...)
+	}
+
+	return result
+}
+
+// runLength — длина серии одинаковых байт начиная с i, максимум 127
+func runLength(data []byte, i int) int {
+	c := 1
+	for i+c < len(data) && data[i+c] == data[i] && c < 127 {
+		c++
+	}
+	return c
+}
+
 func main() {
 	sa := NewArchiver("input.txt")
-	sa.groupCompress([]byte("AAAABCD"))
-	sa.groupCompress([]byte("ABCCDE"))
+	a := sa.compress([]byte("AAAAAB"))
+	fmt.Println(a)
 }
