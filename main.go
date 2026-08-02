@@ -2,12 +2,6 @@ package main
 
 import "fmt"
 
-const (
-	minRun  = 4
-	stopRun = 3
-	maxLen  = 127
-)
-
 type SimpleArchiver struct {
 	inputPath  string
 	outputPath string
@@ -119,45 +113,31 @@ func (sa *SimpleArchiver) groupCompress(data []byte) []byte {
 }
 
 func (sa *SimpleArchiver) compress(data []byte) []byte {
-	if len(sa.compressEmpty(data)) == 0 {
+	if len(data) == 0 {
 		return []byte{}
 	}
 
-	runs := sa.countRepeating(data)
 	var result []byte
-
-	for i := 0; i < len(runs); {
-		count := int(runs[i])
-		symbol := runs[i+1]
-
-		// сжатая последовательность
-		if count >= minRun {
-			result = append(result, sa.createControlByte(count, true), symbol)
+	var hand []byte
+	countRepeating := sa.countRepeating(data)
+	for i := 0; i < len(countRepeating); {
+		if countRepeating[i] >= 4 {
+			result = append(result, sa.createControlByte(int(countRepeating[i]), true), countRepeating[i+1])
+		} else {
+			for range countRepeating[i] {
+				hand = append(hand, countRepeating[i+1])
+			}
+		}
+		if len(hand) == 0 {
 			i += 2
 			continue
 		}
-
-		// несжимаемая группа: первую серию берём целиком
-		var hand []byte
-		for j := 0; j < count; j++ {
-			hand = append(hand, symbol)
+		if i+2 >= len(countRepeating) || countRepeating[i+2] >= 3 {
+			result = append(result, sa.createControlByte(len(hand), false))
+			result = append(result, hand...)
+			hand = []byte{}
 		}
 		i += 2
-
-		// просмотр вперёд: добираем, пока впереди нет 3+ одинаковых
-		for i < len(runs) {
-			next := int(runs[i])
-			if next >= stopRun || len(hand)+next > maxLen {
-				break
-			}
-			for j := 0; j < next; j++ {
-				hand = append(hand, runs[i+1])
-			}
-			i += 2
-		}
-
-		result = append(result, sa.createControlByte(len(hand), false))
-		result = append(result, hand...)
 	}
 
 	return result
@@ -165,6 +145,7 @@ func (sa *SimpleArchiver) compress(data []byte) []byte {
 
 func main() {
 	sa := NewArchiver("input.txt")
-	a := sa.compress([]byte("AAAAAB"))
+	//a := sa.compress([]byte("ABBBCCCCDE"))
+	a := sa.compress([]byte("AAAAAAA"))
 	fmt.Println(a)
 }
