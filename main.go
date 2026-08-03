@@ -2,6 +2,12 @@ package main
 
 import "fmt"
 
+const (
+	minRun  = 4
+	stopRun = 3
+	maxLen  = 127
+)
+
 type SimpleArchiver struct {
 	inputPath  string
 	outputPath string
@@ -143,9 +149,27 @@ func (sa *SimpleArchiver) compress(data []byte) []byte {
 	return result
 }
 
+func (sa *SimpleArchiver) decompress(data []byte) []byte {
+	if len(data) == 0 {
+		return []byte{}
+	}
+	var result []byte
+
+	for i := 0; i < len(data); {
+		fmt.Printf("%#x\n", data[i])
+		length := int(data[i] & 0x7F)
+		if data[i]&0x80 == 0 {
+			i += 1 + length
+		} else {
+			i += 2
+		}
+	}
+	return result
+}
+
 func main() {
 	sa := NewArchiver("input.txt")
 	//a := sa.compress([]byte("ABBBCCCCDE"))
-	a := sa.compress([]byte("AAAAAAA"))
-	fmt.Println(a)
+	//a := sa.compress([]byte("AAAAAAA"))
+	_ = sa.decompress([]byte{0x85, 0x41, 0x03, 0x42, 0x43, 0x44})
 }
