@@ -161,6 +161,11 @@ func (sa *SimpleArchiver) decompress(data []byte) []byte {
 		length := int(data[i] & 0x7F)
 		if data[i]&0x80 != 0 {
 			messageInfo += "cжатая, "
+			j := i + 1
+			value := data[j]
+			for range length {
+				result = append(result, value)
+			}
 		} else {
 			messageInfo += "несжатая, "
 		}
@@ -178,5 +183,6 @@ func main() {
 	sa := NewArchiver("input.txt")
 	//a := sa.compress([]byte("ABBBCCCCDE"))
 	//a := sa.compress([]byte("AAAAAAA"))
-	_ = sa.decompress([]byte{0x85, 0x41, 0x03, 0x42, 0x43, 0x44})
+	a := sa.decompress([]byte{0x85, 0x41, 0x03, 0x42, 0x43, 0x44})
+	fmt.Println(a)
 }
