@@ -172,6 +172,8 @@ func (sa *SimpleArchiver) decompress(data []byte) []byte {
 		}
 		fmt.Printf("%sдлина: %v\n", messageInfo, length)
 		if currentByte&0x80 == 0 {
+			bytes := data[i+1 : i+length+1]
+			result = append(result, bytes...)
 			i += 1 + length
 		} else {
 			i += 1
