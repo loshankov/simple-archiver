@@ -157,7 +157,14 @@ func (sa *SimpleArchiver) decompress(data []byte) []byte {
 
 	for i := 0; i < len(data); {
 		fmt.Printf("%#x\n", data[i])
+		messageInfo := ""
 		length := int(data[i] & 0x7F)
+		if data[i]&0x80 != 0 {
+			messageInfo += "cжатая, "
+		} else {
+			messageInfo += "несжатая, "
+		}
+		fmt.Printf("%sдлина: %v\n", messageInfo, length)
 		if data[i]&0x80 == 0 {
 			i += 1 + length
 		} else {
