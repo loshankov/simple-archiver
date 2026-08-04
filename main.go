@@ -161,8 +161,8 @@ func (sa *SimpleArchiver) decompress(data []byte) []byte {
 		length := int(data[i] & 0x7F)
 		if data[i]&0x80 != 0 {
 			messageInfo += "cжатая, "
-			j := i + 1
-			value := data[j]
+			i := i + 1
+			value := data[i]
 			for range length {
 				result = append(result, value)
 			}
@@ -173,7 +173,7 @@ func (sa *SimpleArchiver) decompress(data []byte) []byte {
 		if data[i]&0x80 == 0 {
 			i += 1 + length
 		} else {
-			i += 2
+			i += 1
 		}
 	}
 	return result
