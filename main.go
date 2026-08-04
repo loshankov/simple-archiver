@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 const (
 	minRun  = 4
@@ -184,8 +187,12 @@ func (sa *SimpleArchiver) decompress(data []byte) []byte {
 
 func main() {
 	sa := NewArchiver("input.txt")
-	//a := sa.compress([]byte("ABBBCCCCDE"))
-	//a := sa.compress([]byte("AAAAAAA"))
-	a := sa.decompress([]byte{0x85, 0x41, 0x03, 0x42, 0x43, 0x44})
-	fmt.Println(a)
+	data := []byte{0x85, 0x41, 0x03, 0x42, 0x43, 0x44}
+	compressedData := sa.compress(data)
+	decompressedData := sa.decompress(compressedData)
+
+	fmt.Printf(`Исходные данные: % x
+Сжатые данные:   % x
+Распакованные:   % x
+Данные совпадают: %t`, data, compressedData, decompressedData, bytes.Equal(data, decompressedData))
 }
