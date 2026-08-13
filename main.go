@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -223,20 +224,32 @@ func (sa *SimpleArchiver) CompressFile(inputPath, outputPath string) (err error)
 	}
 
 	header := append([]byte{byte(len(name))}, name...)
-	_, err = writer.Write(header)
-	if err != nil {
-		return fmt.Errorf("write header %q: %w", header, err)
+	if _, err = writer.Write(header); err != nil {
+		return fmt.Errorf("write header: %w", err)
 	}
 
-	resultRead, err := io.ReadAll(reader)
-	if err != nil {
-		return fmt.Errorf("read input file: %w", err)
-	}
-	resultCompress := sa.groupCompress(resultRead)
+	for {
+		n, err := reader.Read(sa.buffer)
 
-	if _, err = writer.Write(resultCompress); err != nil {
-		return fmt.Errorf("write compress file: %w", err)
+		if n > 0 {
+			compressed := sa.compress(sa.buffer[:n])
+			blockSize := len(compressed)
+
+			if _, err = writer.Write([]byte{byte(blockSize >> 8), byte(blockSize)}); err != nil {
+				return fmt.Errorf("write blockSizer: %w", err)
+			}
+			if _, err = writer.Write(compressed); err != nil {
+				return fmt.Errorf("write blockSizer: %w", err)
+			}
+		}
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("read input file: %w", err)
+		}
 	}
+
 	return err
 }
 
