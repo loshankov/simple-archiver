@@ -1,8 +1,11 @@
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 )
 
 const (
@@ -185,14 +188,65 @@ func (sa *SimpleArchiver) decompress(data []byte) []byte {
 	return result
 }
 
+func (sa *SimpleArchiver) CompressFile(inputPath, outputPath string) (err error) {
+
+	inputFile, err := os.Open(inputPath)
+	if err != nil {
+		return fmt.Errorf("open input file %q: %w", inputPath, err)
+	}
+	defer func() {
+		_ = inputFile.Close()
+	}()
+	outputFile, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("create output file %q: %w", outputPath, err)
+	}
+	defer func() {
+		oErr := outputFile.Close()
+		if oErr != nil && err == nil {
+			err = fmt.Errorf("close output file: %w", oErr)
+		}
+	}()
+
+	reader := bufio.NewReader(inputFile)
+	writer := bufio.NewWriter(outputFile)
+	defer func() {
+		flushErr := writer.Flush()
+		if err == nil && flushErr != nil {
+			err = fmt.Errorf("flush writer: %w", flushErr)
+		}
+	}()
+
+	name := filepath.Base(inputPath)
+	if len(name) > 255 {
+		return fmt.Errorf("file length > 255: %d", len(name))
+	}
+
+	header := append([]byte{byte(len(name))}, name...)
+	_, err = writer.Write(header)
+	if err != nil {
+		return fmt.Errorf("write header %q: %w", header, err)
+	}
+
+	resultRead, err := io.ReadAll(reader)
+	if err != nil {
+		return fmt.Errorf("read input file: %w", err)
+	}
+	resultCompress := sa.groupCompress(resultRead)
+
+	if _, err = writer.Write(resultCompress); err != nil {
+		return fmt.Errorf("write compress file: %w", err)
+	}
+	return err
+}
+
 func main() {
 	sa := NewArchiver("input.txt")
-	data := []byte{0x85, 0x41, 0x03, 0x42, 0x43, 0x44}
-	compressedData := sa.compress(data)
-	decompressedData := sa.decompress(compressedData)
+	_ = []byte{0x85, 0x41, 0x03, 0x42, 0x43, 0x44}
+	if err := sa.CompressFile("input.txt", "output.bin"); err != nil {
+		fmt.Println("ошибка:", err)
+		return
+	}
+	fmt.Println("готово")
 
-	fmt.Printf(`Исходные данные: % x
-Сжатые данные:   % x
-Распакованные:   % x
-Данные совпадают: %t`, data, compressedData, decompressedData, bytes.Equal(data, decompressedData))
 }
