@@ -190,7 +190,6 @@ func (sa *SimpleArchiver) decompress(data []byte) []byte {
 }
 
 func (sa *SimpleArchiver) CompressFile(inputPath, outputPath string) (err error) {
-
 	inputFile, err := os.Open(inputPath)
 	if err != nil {
 		return fmt.Errorf("open input file %q: %w", inputPath, err)
@@ -249,6 +248,50 @@ func (sa *SimpleArchiver) CompressFile(inputPath, outputPath string) (err error)
 			return fmt.Errorf("read input file: %w", err)
 		}
 	}
+
+	return err
+}
+
+func (sa *SimpleArchiver) DecompressFile(inputPath, outputPath string) (err error) {
+	inputFile, err := os.Open(inputPath)
+	if err != nil {
+		return fmt.Errorf("open input file %q: %w", inputPath, err)
+	}
+	defer func() {
+		_ = inputFile.Close()
+	}()
+	reader := bufio.NewReader(inputFile)
+	nameLen, err := reader.ReadByte()
+	if err != nil {
+		return fmt.Errorf("read name length: %w", err)
+	}
+	nameBuf := make([]byte, int(nameLen))
+
+	if _, err := io.ReadFull(reader, nameBuf); err != nil {
+		return fmt.Errorf("read buffer: %w", err)
+	}
+
+	outputDir := filepath.Join(outputPath, string(nameBuf))
+
+	outputFile, err := os.Create(outputDir)
+	if err != nil {
+		return fmt.Errorf("create output file %q: %w", outputPath, err)
+	}
+
+	defer func() {
+		oErr := outputFile.Close()
+		if oErr != nil && err == nil {
+			err = fmt.Errorf("close output file: %w", oErr)
+		}
+	}()
+
+	writer := bufio.NewWriter(outputFile)
+	defer func() {
+		flushErr := writer.Flush()
+		if err == nil && flushErr != nil {
+			err = fmt.Errorf("flush writer: %w", flushErr)
+		}
+	}()
 
 	return err
 }
