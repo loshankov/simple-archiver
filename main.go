@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 const (
@@ -317,13 +319,36 @@ func (sa *SimpleArchiver) DecompressFile(inputPath, outputPath string) (err erro
 	return err
 }
 
-func main() {
-	sa := NewArchiver("input.txt")
-	_ = []byte{0x85, 0x41, 0x03, 0x42, 0x43, 0x44}
-	if err := sa.CompressFile("input.txt", "output.bin"); err != nil {
-		fmt.Println("ошибка:", err)
-		return
-	}
-	fmt.Println("готово")
+type model struct {
+	cursor    int
+	archiver  *SimpleArchiver
+	choices   []string
+	state     string
+	inputPath string
+	err       error
+}
 
+func initialModel() model {
+	return model{
+		archiver: NewArchiver(""),
+		state:    "menu",
+		choices:  []string{"Сжать файл", "Распаковать файл", "Выход"},
+	}
+}
+
+func (m model) Init() tea.Cmd { return nil }
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	return m, nil
+}
+
+func (m model) View() string {
+	return ""
+}
+
+func main() {
+	if _, err := tea.NewProgram(initialModel()).Run(); err != nil {
+		fmt.Println("ошибка запуска:", err)
+		os.Exit(1)
+	}
 }
