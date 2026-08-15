@@ -277,7 +277,6 @@ func (sa *SimpleArchiver) DecompressFile(inputPath, outputPath string) (err erro
 	if err != nil {
 		return fmt.Errorf("create output file %q: %w", outputPath, err)
 	}
-
 	defer func() {
 		oErr := outputFile.Close()
 		if oErr != nil && err == nil {
@@ -292,6 +291,28 @@ func (sa *SimpleArchiver) DecompressFile(inputPath, outputPath string) (err erro
 			err = fmt.Errorf("flush writer: %w", flushErr)
 		}
 	}()
+	bufSize := make([]byte, 2)
+	for {
+		if _, err := io.ReadFull(reader, bufSize); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return fmt.Errorf("read block size: %w", err)
+		}
+
+		bufSizeInt := int(bufSize[0])<<8 | int(bufSize[1])
+
+		blockBuf := make([]byte, bufSizeInt)
+		if _, err := io.ReadFull(reader, blockBuf); err != nil {
+			return fmt.Errorf("read buffer: %w", err)
+		}
+
+		decompressed := sa.decompress(blockBuf)
+		if _, wErr := writer.Write(decompressed); wErr != nil {
+			return fmt.Errorf("write decompressed: %w", wErr)
+		}
+
+	}
 
 	return err
 }
