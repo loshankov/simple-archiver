@@ -340,6 +340,13 @@ func initialModel() model {
 func (m model) Init() tea.Cmd { return nil }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch m.state {
+	case "menu":
+		if keyMsg, ok := msg.(tea.KeyMsg); ok {
+			return m.updateMenu(keyMsg)
+		}
+	default:
+	}
 	return m, nil
 }
 
@@ -366,6 +373,32 @@ func (m model) viewMenu() string {
 
 	result = append(result, "\nИспользуйте стрелки для навигации и enter для выбора\nНажмите q для выхода")
 	return strings.Join(result, "\n")
+}
+
+func (m model) updateMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "up", "k":
+		if m.cursor > 0 {
+			m.cursor--
+		}
+	case "down", "j":
+		if m.cursor < len(m.choices)-1 {
+			m.cursor++
+		}
+	case "enter":
+		if m.cursor == 0 {
+			m.state = "compress"
+		}
+		if m.cursor == 1 {
+			m.state = "decompress"
+		}
+		if m.cursor == 2 {
+			return m, tea.Quit
+		}
+	case "ctrl+c", "q":
+		return m, tea.Quit
+	}
+	return m, nil
 }
 
 func main() {
