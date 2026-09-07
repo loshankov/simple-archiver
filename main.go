@@ -354,6 +354,8 @@ func (m model) View() string {
 	switch m.state {
 	case "menu":
 		return m.viewMenu()
+	case "compress", "decompress":
+		return m.viewInput()
 	default:
 		return ""
 	}
@@ -399,6 +401,27 @@ func (m model) updateMenu(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 	return m, nil
+}
+
+func (m model) viewInput() string {
+	result := make([]string, 0)
+	var action string
+	switch m.state {
+	case "compress":
+		action = "сжатия:\n"
+	case "decompress":
+		action = "распаковки:\n"
+	}
+
+	result = append(result, "=== Простой архиватор ===\n\nВведите путь к файлу для "+action)
+
+	if m.err != nil {
+		result = append(result, "Ошибка: "+m.err.Error()+"\n\n")
+	}
+
+	result = append(result, m.inputPath+"_\n\n")
+	result = append(result, "Enter для подтверждения, Esc для возврата в меню\n")
+	return strings.Join(result, "")
 }
 
 func main() {
