@@ -345,7 +345,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if keyMsg, ok := msg.(tea.KeyMsg); ok {
 			return m.updateMenu(keyMsg)
 		}
-	default:
+	case "compress", "decompress":
+		if keyMsg, ok := msg.(tea.KeyMsg); ok {
+			return m.updateInput(keyMsg)
+		}
 	}
 	return m, nil
 }
@@ -422,6 +425,28 @@ func (m model) viewInput() string {
 	result = append(result, m.inputPath+"_\n\n")
 	result = append(result, "Enter для подтверждения, Esc для возврата в меню\n")
 	return strings.Join(result, "")
+}
+
+func (m model) updateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "ctrl+c":
+		return m, tea.Quit
+	case "esc":
+		m.err = nil
+		m.state = "menu"
+	case "enter":
+		if m.inputPath == "" {
+		}
+	case "backspace":
+		if len(m.inputPath) > 0 {
+			m.inputPath = string([]rune(m.inputPath)[0 : len([]rune(m.inputPath))-1])
+		}
+	default:
+		if len(msg.Runes) == 1 {
+			m.inputPath = m.inputPath + string(msg.Runes)
+		}
+	}
+	return m, nil
 }
 
 func main() {
