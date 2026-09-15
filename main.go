@@ -437,6 +437,18 @@ func (m model) updateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.state = "menu"
 	case "enter":
 		if m.inputPath == "" {
+			return m, nil
+		}
+		arch := NewArchiver(m.inputPath)
+		switch m.state {
+		case "compress":
+			if err := arch.CompressFile(m.inputPath, m.inputPath+".sarch"); err != nil {
+				m.err = err
+			}
+		case "decompress":
+			if err := arch.DecompressFile(m.inputPath, filepath.Dir(m.inputPath)); err != nil {
+				m.err = err
+			}
 		}
 	case "backspace":
 		if len(m.inputPath) > 0 {
