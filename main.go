@@ -340,15 +340,16 @@ func initialModel() model {
 func (m model) Init() tea.Cmd { return nil }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch m.state {
-	case "menu":
-		if keyMsg, ok := msg.(tea.KeyMsg); ok {
+	switch keyMsg := msg.(type) {
+	case tea.KeyMsg:
+		switch m.state {
+		case "menu":
 			return m.updateMenu(keyMsg)
-		}
-	case "compress", "decompress":
-		if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		case "compress", "decompress":
 			return m.updateInput(keyMsg)
 		}
+	default:
+		return m, nil
 	}
 	return m, nil
 }
