@@ -445,12 +445,13 @@ func (m model) updateInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if err := arch.CompressFile(m.inputPath, m.inputPath+".sarch"); err != nil {
 				m.err = err
 			}
+			m.state = "menu"
 		case "decompress":
 			if err := arch.DecompressFile(m.inputPath, filepath.Dir(m.inputPath)); err != nil {
 				m.err = err
 			}
+			m.state = "menu"
 		}
-		m.state = "menu"
 	case "backspace":
 		if len(m.inputPath) > 0 {
 			m.inputPath = string([]rune(m.inputPath)[0 : len([]rune(m.inputPath))-1])
